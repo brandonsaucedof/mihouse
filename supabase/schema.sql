@@ -80,8 +80,9 @@ $$;
 
 -- 1. Homes: Anyone can create a home. Users can read/update their own home.
 CREATE POLICY "Anyone can create a home" ON public.homes FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can view their home" ON public.homes FOR SELECT USING (id = public.get_user_home_id());
+CREATE POLICY "Users can view any home to join" ON public.homes FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Users can update their home" ON public.homes FOR UPDATE USING (id = public.get_user_home_id());
+
 
 -- 2. Profiles: Users can read profiles in their home. Users can insert/update their own profile.
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
