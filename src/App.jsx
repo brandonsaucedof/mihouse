@@ -10,7 +10,9 @@ import Setup from '@/pages/Setup';
 import Dashboard from '@/pages/Dashboard';
 import Family from '@/pages/Family';
 import Inventory from '@/pages/Inventory';
+import NewInventoryItem from '@/pages/NewInventoryItem';
 import Shopping from '@/pages/Shopping';
+import ShoppingCheckout from '@/pages/ShoppingCheckout';
 import Expenses from '@/pages/Expenses';
 import Profile from '@/pages/Profile';
 
@@ -34,7 +36,9 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/family" element={<Family />} />
               <Route path="/inventory" element={<Inventory />} />
+              <Route path="/inventory/new" element={<NewInventoryItem />} />
               <Route path="/shopping" element={<Shopping />} />
+              <Route path="/shopping/checkout" element={<ShoppingCheckout />} />
               <Route path="/expenses" element={<Expenses />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
