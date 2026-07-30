@@ -101,3 +101,15 @@ CREATE POLICY "Users can manage shopping in their home" ON public.shopping_items
 -- 6. Purchases: Users can read/write purchases in their home.
 CREATE POLICY "Users can manage purchases in their home" ON public.purchases FOR ALL USING (home_id = public.get_user_home_id());
 
+-- 7. Eventos de compras (Fase 5 extra)
+CREATE TABLE public.shopping_events (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    home_id uuid REFERENCES public.homes(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE public.shopping_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage shopping events in their home" ON public.shopping_events FOR ALL USING (home_id = public.get_user_home_id());
+
+-- Alter shopping items to support events
+ALTER TABLE public.shopping_items ADD COLUMN event_id uuid REFERENCES public.shopping_events(id) ON DELETE CASCADE;

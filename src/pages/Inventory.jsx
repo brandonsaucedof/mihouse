@@ -87,27 +87,34 @@ export default function Inventory() {
         .update({ quantity: newQty, status: newStatus, is_archived: isArchived })
         .eq('id', item.id);
 
-      // Auto agregar a compras
-      if (newStatus !== 'Suficiente') {
-        const { data: existing } = await supabase
-          .from('shopping_items')
-          .select('id')
-          .eq('home_id', profile.home_id)
-          .eq('name', item.name)
-          .eq('is_purchased', false)
-          .maybeSingle();
-        
-        if (!existing) {
-          await supabase.from('shopping_items').insert([{
-            home_id: profile.home_id,
-            name: item.name,
-            is_purchased: false,
-            week: 1
-          }]);
-        }
+      // Auto agregar a compras (Solo si NO es "una_vez")
+      if (newStatus !== 'Suficiente' && item.type !== 'una_vez') {
+        addToShoppingList(item.name);
       }
     } catch (err) {
       setItems(originalItems); // revert on error
+    }
+  };
+
+  const addToShoppingList = async (itemName) => {
+    const { data: existing } = await supabase
+      .from('shopping_items')
+      .select('id')
+      .eq('home_id', profile.home_id)
+      .eq('name', itemName)
+      .eq('is_purchased', false)
+      .maybeSingle();
+    
+    if (!existing) {
+      await supabase.from('shopping_items').insert([{
+        home_id: profile.home_id,
+        name: itemName,
+        is_purchased: false,
+        week: 1
+      }]);
+      alert(`"${itemName}" añadido a la lista de compras.`);
+    } else {
+      alert(`"${itemName}" ya está en tu lista de compras.`);
     }
   };
 
@@ -225,7 +232,10 @@ export default function Inventory() {
                         </button>
                       </div>
                       
-                      <button onClick={() => deleteItem(item.id)} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors">
+                      <button onClick={() => addToShoppingList(item.name)} title="Añadir a lista de compras" className="p-3 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-xl transition-colors">
+                        <ShoppingCart size={18} />
+                      </button>
+                      <button onClick={() => deleteItem(item.id)} title="Eliminar del inventario" className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors">
                         <Trash2 size={18} />
                       </button>
                     </div>
