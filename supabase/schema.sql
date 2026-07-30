@@ -69,24 +69,34 @@ ALTER TABLE public.purchases ENABLE ROW LEVEL SECURITY;
 
 -- === RLS POLICIES ===
 
+-- Helper function to avoid infinite recursion when querying profiles
+CREATE OR REPLACE FUNCTION public.get_user_home_id()
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT home_id FROM public.profiles WHERE id = auth.uid();
+$$;
+
 -- 1. Homes: Anyone can create a home. Users can read/update their own home.
 CREATE POLICY "Anyone can create a home" ON public.homes FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can view their home" ON public.homes FOR SELECT USING (id IN (SELECT home_id FROM profiles WHERE id = auth.uid()));
-CREATE POLICY "Users can update their home" ON public.homes FOR UPDATE USING (id IN (SELECT home_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "Users can view their home" ON public.homes FOR SELECT USING (id = public.get_user_home_id());
+CREATE POLICY "Users can update their home" ON public.homes FOR UPDATE USING (id = public.get_user_home_id());
 
 -- 2. Profiles: Users can read profiles in their home. Users can insert/update their own profile.
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can view profiles in their home" ON public.profiles FOR SELECT USING (home_id IN (SELECT home_id FROM profiles WHERE id = auth.uid()) OR auth.uid() = id);
+CREATE POLICY "Users can view profiles in their home" ON public.profiles FOR SELECT USING (home_id = public.get_user_home_id() OR auth.uid() = id);
 
 -- 3. Categories: Users can read/write categories in their home.
-CREATE POLICY "Users can manage categories in their home" ON public.categories FOR ALL USING (home_id IN (SELECT home_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "Users can manage categories in their home" ON public.categories FOR ALL USING (home_id = public.get_user_home_id());
 
 -- 4. Inventory: Users can read/write inventory in their home.
-CREATE POLICY "Users can manage inventory in their home" ON public.inventory_items FOR ALL USING (home_id IN (SELECT home_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "Users can manage inventory in their home" ON public.inventory_items FOR ALL USING (home_id = public.get_user_home_id());
 
 -- 5. Shopping: Users can read/write shopping items in their home.
-CREATE POLICY "Users can manage shopping in their home" ON public.shopping_items FOR ALL USING (home_id IN (SELECT home_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "Users can manage shopping in their home" ON public.shopping_items FOR ALL USING (home_id = public.get_user_home_id());
 
 -- 6. Purchases: Users can read/write purchases in their home.
-CREATE POLICY "Users can manage purchases in their home" ON public.purchases FOR ALL USING (home_id IN (SELECT home_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "Users can manage purchases in their home" ON public.purchases FOR ALL USING (home_id = public.get_user_home_id());
+
