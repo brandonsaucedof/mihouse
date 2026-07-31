@@ -118,3 +118,11 @@ ALTER TABLE public.shopping_items ADD COLUMN event_id uuid REFERENCES public.sho
 ALTER TABLE public.shopping_items ADD COLUMN category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL;
 ALTER TABLE public.shopping_items ADD COLUMN quantity text;
 ALTER TABLE public.shopping_items ADD COLUMN expected_price numeric;
+
+-- Alter purchases to support week, event_id and items_summary
+ALTER TABLE public.purchases ADD COLUMN week integer;
+ALTER TABLE public.purchases ADD COLUMN event_id uuid REFERENCES public.shopping_events(id) ON DELETE SET NULL;
+ALTER TABLE public.purchases ADD COLUMN items_summary jsonb;
+
+-- Alter inventory_items to support restock_quantity
+ALTER TABLE public.inventory_items ADD COLUMN restock_quantity numeric DEFAULT 1;

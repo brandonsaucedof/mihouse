@@ -20,6 +20,7 @@ export default function NewInventoryItem() {
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState('un');
   const [minQuantity, setMinQuantity] = useState(1);
+  const [restockQuantity, setRestockQuantity] = useState(1);
   const [type, setType] = useState('permanente');
 
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function NewInventoryItem() {
           unit,
           status,
           min_quantity: minQuantity,
+          restock_quantity: restockQuantity,
           type,
           added_by: profile.id
         }]);
@@ -91,7 +93,9 @@ export default function NewInventoryItem() {
           home_id: profile.home_id,
           name: name,
           is_purchased: false,
-          week: 1
+          week: 1,
+          category_id: categoryId,
+          quantity: restockQuantity ? `${restockQuantity} ${unit}` : null
         }]);
       }
 
@@ -213,17 +217,31 @@ export default function NewInventoryItem() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad mínima (Alerta)</label>
-          <p className="text-xs text-gray-500 mb-2">Si baja de esto, se marcará como "Poco" y se enviará a compras.</p>
-          <input
-            type="number"
-            min="0"
-            required
-            className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-xl bg-transparent dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
-            value={minQuantity}
-            onChange={(e) => setMinQuantity(Number(e.target.value))}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mínimo permitido (Alerta)</label>
+            <p className="text-xs text-gray-500 mb-2">Si baja de esto, va a compras.</p>
+            <input
+              type="number"
+              min="0"
+              required
+              className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-xl bg-transparent dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+              value={minQuantity}
+              onChange={(e) => setMinQuantity(Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad a reponer</label>
+            <p className="text-xs text-gray-500 mb-2">Qué cantidad comprar al agotarse.</p>
+            <input
+              type="number"
+              min="1"
+              required
+              className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-xl bg-transparent dark:text-white focus:ring-2 focus:ring-teal-500 outline-none"
+              value={restockQuantity}
+              onChange={(e) => setRestockQuantity(Number(e.target.value))}
+            />
+          </div>
         </div>
 
         <div>
