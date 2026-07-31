@@ -12,7 +12,6 @@ export default function ShoppingCheckout() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  const [storeName, setStoreName] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
 
   useEffect(() => {
@@ -62,7 +61,7 @@ export default function ShoppingCheckout() {
         .insert([{
           home_id: profile.home_id,
           total_amount: Number(totalAmount),
-          store_name: storeName.trim() || 'Supermercado',
+          store_name: 'Supermercado',
           week: purchaseWeek,
           event_id: purchaseEventId,
           items_summary: itemsSummary
@@ -172,22 +171,6 @@ export default function ShoppingCheckout() {
 
         <div className="border-t border-gray-100 dark:border-slate-700 pt-6">
           <form onSubmit={handleCheckout} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Lugar de Compra (Supermercado)
-              </label>
-              <div className="relative">
-                <Store className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="Ej. Walmart, Lider, Jumbo..."
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 dark:text-white transition-all"
-                  value={storeName}
-                  onChange={e => setStoreName(e.target.value)}
-                />
-              </div>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Monto Total Gastado
