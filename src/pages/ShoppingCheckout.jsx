@@ -60,6 +60,8 @@ export default function ShoppingCheckout() {
       // We check if the purchased item exists in inventory_items by name, and if so, set quantity = min_quantity + 1, status = 'Suficiente', is_archived = false
       
       for (const item of items) {
+        const isEventItem = item.event_id != null;
+
         // Try to find the item in inventory
         const { data: invItem } = await supabase
           .from('inventory_items')
@@ -76,11 +78,12 @@ export default function ShoppingCheckout() {
             .update({ 
               quantity: newQty, 
               status: 'Suficiente', 
-              is_archived: false 
+              is_archived: isEventItem ? true : false,
+              type: isEventItem ? 'una_vez' : invItem.type
             })
             .eq('id', invItem.id);
         } else {
-          // Si no existe, lo creamos como un item permanente sin categoría
+          // Si no existe, lo creamos
           await supabase
             .from('inventory_items')
             .insert([{
@@ -89,7 +92,9 @@ export default function ShoppingCheckout() {
               quantity: 1,
               status: 'Suficiente',
               min_quantity: 1,
-              added_by: profile.id
+              added_by: profile.id,
+              is_archived: isEventItem ? true : false,
+              type: isEventItem ? 'una_vez' : 'permanente'
             }]);
         }
       }
@@ -98,8 +103,8 @@ export default function ShoppingCheckout() {
       const itemIds = items.map(i => i.id);
       await supabase.from('shopping_items').delete().in('id', itemIds);
 
-      // 4. Redirect to Expenses/Analytics
-      navigate('/expenses');
+      // 4. Redirect to Shopping instead of Expenses
+      navigate('/shopping');
     } catch (err) {
       console.error(err);
       alert('Hubo un error al procesar la compra.');
@@ -135,9 +140,18 @@ export default function ShoppingCheckout() {
         </h2>
         <ul className="space-y-3 mb-6 max-h-64 overflow-y-auto pr-2">
           {items.map(item => (
-            <li key={item.id} className="flex items-center space-x-3 text-gray-700 dark:text-gray-300">
-              <CheckCircle2 size={16} className="text-teal-500 flex-shrink-0" />
-              <span className="font-medium truncate">{item.name}</span>
+            <li key={item.id} className="flex flex-col text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <CheckCircle2 size={16} className="text-teal-500 flex-shrink-0" />
+                <span className="font-medium truncate">{item.name}</span>
+              </div>
+              {(item.quantity || item.expected_price) && (
+                <div className="text-sm text-gray-500 dark:text-gray-400 ml-7 mt-1">
+                  {item.quantity && <span>{item.quantity}</span>}
+                  {item.quantity && item.expected_price && <span> • </span>}
+                  {item.expected_price && <span>Bs {item.expected_price}</span>}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -165,14 +179,14 @@ export default function ShoppingCheckout() {
                 Monto Total Gastado
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Bs</span>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   required
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-4 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 dark:text-white transition-all text-2xl font-bold"
+                  className="w-full pl-10 pr-4 py-4 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 dark:text-white transition-all text-2xl font-bold"
                   value={totalAmount}
                   onChange={e => setTotalAmount(e.target.value)}
                 />

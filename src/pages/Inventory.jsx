@@ -27,7 +27,7 @@ export default function Inventory() {
         .from('inventory_items')
         .select(`
           *,
-          category:categories(name)
+          category:categories(id, name)
         `)
         .eq('home_id', profile.home_id)
         .eq('is_archived', isArchived)
@@ -89,14 +89,14 @@ export default function Inventory() {
 
       // Auto agregar a compras (Solo si NO es "una_vez")
       if (newStatus !== 'Suficiente' && item.type !== 'una_vez') {
-        addToShoppingList(item.name);
+        addToShoppingList(item.name, item.category_id);
       }
     } catch (err) {
       setItems(originalItems); // revert on error
     }
   };
 
-  const addToShoppingList = async (itemName) => {
+  const addToShoppingList = async (itemName, categoryId = null) => {
     const { data: existing } = await supabase
       .from('shopping_items')
       .select('id')
@@ -110,7 +110,8 @@ export default function Inventory() {
         home_id: profile.home_id,
         name: itemName,
         is_purchased: false,
-        week: 1
+        week: 1,
+        category_id: categoryId
       }]);
       alert(`"${itemName}" añadido a la lista de compras.`);
     } else {
@@ -232,7 +233,7 @@ export default function Inventory() {
                         </button>
                       </div>
                       
-                      <button onClick={() => addToShoppingList(item.name)} title="Añadir a lista de compras" className="p-3 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-xl transition-colors">
+                      <button onClick={() => addToShoppingList(item.name, item.category_id)} title="Añadir a lista de compras" className="p-3 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-xl transition-colors">
                         <ShoppingCart size={18} />
                       </button>
                       <button onClick={() => deleteItem(item.id)} title="Eliminar del inventario" className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors">

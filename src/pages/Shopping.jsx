@@ -11,11 +11,16 @@ export default function Shopping() {
   
   const [items, setItems] = useState([]);
   const [events, setEvents] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // '1', '2', '3', '4' para semanas. UUID para eventos.
   const [activeTab, setActiveTab] = useState('1'); 
+  
   const [newItem, setNewItem] = useState('');
+  const [newQuantity, setNewQuantity] = useState('');
+  const [newPrice, setNewPrice] = useState('');
+  const [newCategory, setNewCategory] = useState('');
   
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [newEventName, setNewEventName] = useState('');
@@ -23,6 +28,7 @@ export default function Shopping() {
   useEffect(() => {
     if (profile?.home_id) {
       fetchEvents();
+      fetchCategories();
       fetchShoppingList();
     }
   }, [profile, activeTab]);
@@ -36,12 +42,24 @@ export default function Shopping() {
     if (data) setEvents(data);
   };
 
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('home_id', profile.home_id)
+      .order('name');
+    if (data) setCategories(data);
+  };
+
   const fetchShoppingList = async () => {
     setLoading(true);
     try {
       let query = supabase
         .from('shopping_items')
-        .select('*')
+        .select(`
+          *,
+          category:categories(name)
+        `)
         .eq('home_id', profile.home_id)
         .order('created_at', { ascending: false });
 
@@ -94,6 +112,9 @@ export default function Shopping() {
     const insertData = {
       home_id: profile.home_id,
       name: newItem.trim(),
+      quantity: newQuantity.trim() || null,
+      expected_price: newPrice ? Number(newPrice) : null,
+      category_id: newCategory || null,
       is_purchased: false,
       week: isWeek ? parseInt(activeTab) : null,
       event_id: isWeek ? null : activeTab
@@ -103,12 +124,18 @@ export default function Shopping() {
       const { data, error } = await supabase
         .from('shopping_items')
         .insert([insertData])
-        .select()
+        .select(`
+          *,
+          category:categories(name)
+        `)
         .single();
 
       if (!error && data) {
         setItems([data, ...items]);
         setNewItem('');
+        setNewQuantity('');
+        setNewPrice('');
+        setNewCategory('');
       }
     } catch (err) {
       console.error(err);
@@ -140,6 +167,14 @@ export default function Shopping() {
   };
 
   const purchasedCount = items.filter(i => i.is_purchased).length;
+
+  // Group items by category
+  const groupedItems = items.reduce((acc, item) => {
+    const catName = item.category?.name || 'Sin categoría';
+    if (!acc[catName]) acc[catName] = [];
+    acc[catName].push(item);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6 pb-24">
@@ -213,25 +248,58 @@ export default function Shopping() {
         )}
       </div>
 
-      {/* Añadir Item rápido */}
-      <form onSubmit={handleAddItem} className="relative">
+      {/* Añadir Item Form */}
+      <form onSubmit={handleAddItem} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 space-y-3">
         <input
           type="text"
-          placeholder={['1','2','3','4'].includes(activeTab) ? "Añadir algo a la lista..." : "Añadir al evento..."}
-          className="w-full pl-4 pr-12 py-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-rose-500 dark:text-white transition-all"
+          placeholder={['1','2','3','4'].includes(activeTab) ? "Nombre del producto..." : "Añadir al evento..."}
+          className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
           value={newItem}
           onChange={e => setNewItem(e.target.value)}
+          required
         />
+        
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Cant. (ej. 2kg)"
+            className="w-1/3 px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
+            value={newQuantity}
+            onChange={e => setNewQuantity(e.target.value)}
+          />
+          <div className="relative w-1/3">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Bs</span>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Precio"
+              className="w-full pl-8 pr-2 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
+              value={newPrice}
+              onChange={e => setNewPrice(e.target.value)}
+            />
+          </div>
+          <select 
+            className="flex-1 px-2 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
+            value={newCategory}
+            onChange={e => setNewCategory(e.target.value)}
+          >
+            <option value="">Sin Categoría</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+        
         <button 
           type="submit" 
           disabled={!newItem.trim()}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-800/50 rounded-xl transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 transition-colors flex justify-center items-center disabled:opacity-50"
         >
-          <Plus size={20} />
+          <Plus size={18} className="mr-2" /> Añadir
         </button>
       </form>
 
-      {/* Lista */}
+      {/* Lista Agrupada */}
       {loading ? (
         <div className="space-y-3 animate-pulse mt-6">
           {[1,2,3].map(i => (
@@ -243,38 +311,61 @@ export default function Shopping() {
           No hay compras planificadas aquí.
         </div>
       ) : (
-        <div className="space-y-3">
-          {items.map(item => (
-            <div 
-              key={item.id} 
-              className={cn(
-                "flex items-center justify-between p-4 rounded-2xl shadow-sm border transition-all",
-                item.is_purchased 
-                  ? "bg-gray-50 dark:bg-slate-800/50 border-gray-100 dark:border-slate-700/50 opacity-70" 
-                  : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-700"
-              )}
-            >
-              <div className="flex items-center space-x-4 flex-1 cursor-pointer" onClick={() => togglePurchased(item.id, item.is_purchased)}>
-                <div className={cn(
-                  "w-6 h-6 rounded-md flex items-center justify-center transition-colors border-2",
-                  item.is_purchased ? "bg-rose-500 border-rose-500" : "border-gray-300 dark:border-slate-500"
-                )}>
-                  {item.is_purchased && <Check size={14} className="text-white" />}
-                </div>
-                <span className={cn(
-                  "font-medium text-lg transition-all",
-                  item.is_purchased ? "line-through text-gray-400 dark:text-gray-500" : "text-gray-900 dark:text-white"
-                )}>
-                  {item.name}
-                </span>
+        <div className="space-y-6 mt-6">
+          {Object.entries(groupedItems).map(([catName, catItems]) => (
+            <div key={catName}>
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-2 pl-1">
+                {catName}
+              </h2>
+              <div className="space-y-2">
+                {catItems.map(item => (
+                  <div 
+                    key={item.id} 
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-2xl shadow-sm border transition-all",
+                      item.is_purchased 
+                        ? "bg-gray-50 dark:bg-slate-800/50 border-gray-100 dark:border-slate-700/50 opacity-70" 
+                        : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-700"
+                    )}
+                  >
+                    <div className="flex items-center space-x-3 flex-1 cursor-pointer overflow-hidden" onClick={() => togglePurchased(item.id, item.is_purchased)}>
+                      <div className={cn(
+                        "w-6 h-6 flex-shrink-0 rounded-md flex items-center justify-center transition-colors border-2",
+                        item.is_purchased ? "bg-rose-500 border-rose-500" : "border-gray-300 dark:border-slate-500"
+                      )}>
+                        {item.is_purchased && <Check size={14} className="text-white" />}
+                      </div>
+                      
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className={cn(
+                          "font-medium text-base truncate transition-all",
+                          item.is_purchased ? "line-through text-gray-400 dark:text-gray-500" : "text-gray-900 dark:text-white"
+                        )}>
+                          {item.name}
+                        </span>
+                        
+                        {(item.quantity || item.expected_price) && (
+                          <div className={cn(
+                            "text-xs flex items-center space-x-2",
+                            item.is_purchased ? "text-gray-400 dark:text-gray-500" : "text-gray-500 dark:text-gray-400"
+                          )}>
+                            {item.quantity && <span>{item.quantity}</span>}
+                            {item.quantity && item.expected_price && <span>•</span>}
+                            {item.expected_price && <span>Bs {item.expected_price}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => deleteItem(item.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors ml-2 flex-shrink-0"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
               </div>
-              
-              <button 
-                onClick={() => deleteItem(item.id)}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors ml-4"
-              >
-                <Trash2 size={18} />
-              </button>
             </div>
           ))}
         </div>

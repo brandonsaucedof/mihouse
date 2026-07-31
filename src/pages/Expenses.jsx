@@ -63,8 +63,8 @@ export default function Expenses() {
         </div>
         <h2 className="text-purple-100 font-medium mb-1 relative z-10">Total gastado este mes</h2>
         <div className="text-4xl font-extrabold relative z-10 flex items-baseline space-x-1">
-          <span>$</span>
-          <span>{totalMonth.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <span>Bs</span>
+          <span>{totalMonth.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div className="mt-4 flex items-center text-sm font-medium bg-white/20 w-fit px-3 py-1 rounded-full relative z-10 backdrop-blur-sm">
           <Calendar size={14} className="mr-2" />
@@ -100,7 +100,7 @@ export default function Expenses() {
                 </div>
                 <div className="text-right">
                   <p className="font-extrabold text-gray-900 dark:text-white text-lg">
-                    ${Number(purchase.total_amount).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    Bs {Number(purchase.total_amount).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   <p className="text-xs font-medium text-rose-500 flex items-center justify-end">
                     Gasto <ArrowUpRight size={12} className="ml-1" />

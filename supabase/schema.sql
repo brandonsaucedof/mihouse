@@ -113,3 +113,8 @@ CREATE POLICY "Users can manage shopping events in their home" ON public.shoppin
 
 -- Alter shopping items to support events
 ALTER TABLE public.shopping_items ADD COLUMN event_id uuid REFERENCES public.shopping_events(id) ON DELETE CASCADE;
+
+-- Alter shopping items to support categories, quantity and expected price
+ALTER TABLE public.shopping_items ADD COLUMN category_id uuid REFERENCES public.categories(id) ON DELETE SET NULL;
+ALTER TABLE public.shopping_items ADD COLUMN quantity text;
+ALTER TABLE public.shopping_items ADD COLUMN expected_price numeric;
