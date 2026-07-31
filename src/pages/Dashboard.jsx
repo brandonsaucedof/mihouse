@@ -116,7 +116,7 @@ export default function Dashboard() {
           <div className="h-12 w-32 bg-teal-400/50 animate-pulse rounded-lg"></div>
         ) : (
           <p className="text-5xl font-bold tracking-tight">
-            ${stats.totalSpent.toLocaleString('es-CL')}
+            Bs {stats.totalSpent.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         )}
       </div>

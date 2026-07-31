@@ -213,6 +213,7 @@ export default function NewInventoryItem() {
               <option value="L">Litros (L)</option>
               <option value="ml">Mililitros (ml)</option>
               <option value="paq">Paquetes</option>
+              <option value="@">Arroba (@)</option>
             </select>
           </div>
         </div>

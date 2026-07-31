@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, PackageSearch, Search, Minus, ShoppingCart, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Inventory() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState({});
   const [loading, setLoading] = useState(true);
@@ -235,7 +236,7 @@ export default function Inventory() {
                         </button>
                       </div>
                       
-                      <button onClick={() => addToShoppingList(item.name, item.category_id, item.restock_quantity ? `${item.restock_quantity} ${item.unit}` : null)} title="Añadir a lista de compras" className="p-3 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-xl transition-colors">
+                      <button onClick={() => navigate(`/shopping?add=${encodeURIComponent(item.name)}&cat=${item.category_id || ''}`)} title="Añadir a lista de compras" className="p-3 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-xl transition-colors">
                         <ShoppingCart size={18} />
                       </button>
                       <button onClick={() => deleteItem(item.id)} title="Eliminar del inventario" className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors">

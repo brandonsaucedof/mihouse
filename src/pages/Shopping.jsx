@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingCart, Plus, Check, Trash2, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,11 +19,12 @@ export default function Shopping() {
   
   const [newItem, setNewItem] = useState('');
   const [newQuantity, setNewQuantity] = useState('');
-  const [newPrice, setNewPrice] = useState('');
   const [newCategory, setNewCategory] = useState('');
   
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [newEventName, setNewEventName] = useState('');
+
+  const location = useLocation();
 
   useEffect(() => {
     if (profile?.home_id) {
@@ -32,6 +33,19 @@ export default function Shopping() {
       fetchShoppingList();
     }
   }, [profile, activeTab]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const addName = params.get('add');
+    const addCat = params.get('cat');
+    if (addName) {
+      setNewItem(addName);
+      if (addCat) setNewCategory(addCat);
+      
+      // Clean up URL without reload
+      navigate('/shopping', { replace: true });
+    }
+  }, [location, navigate]);
 
   const fetchEvents = async () => {
     const { data } = await supabase
@@ -113,7 +127,7 @@ export default function Shopping() {
       home_id: profile.home_id,
       name: newItem.trim(),
       quantity: newQuantity.trim() || null,
-      expected_price: newPrice ? Number(newPrice) : null,
+      expected_price: null,
       category_id: newCategory || null,
       is_purchased: false,
       week: isWeek ? parseInt(activeTab) : null,
@@ -134,7 +148,6 @@ export default function Shopping() {
         setItems([data, ...items]);
         setNewItem('');
         setNewQuantity('');
-        setNewPrice('');
         setNewCategory('');
       }
     } catch (err) {
@@ -263,21 +276,10 @@ export default function Shopping() {
           <input
             type="text"
             placeholder="Cant. (ej. 2kg)"
-            className="w-1/3 px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
+            className="w-1/2 px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
             value={newQuantity}
             onChange={e => setNewQuantity(e.target.value)}
           />
-          <div className="relative w-1/3">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Bs</span>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Precio"
-              className="w-full pl-8 pr-2 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
-              value={newPrice}
-              onChange={e => setNewPrice(e.target.value)}
-            />
-          </div>
           <select 
             className="flex-1 px-2 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-rose-500 dark:text-white"
             value={newCategory}
