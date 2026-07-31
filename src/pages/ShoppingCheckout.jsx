@@ -45,13 +45,27 @@ export default function ShoppingCheckout() {
     setSaving(true);
 
     try {
+      // Build items summary and determine week/event
+      const firstItem = items[0];
+      const purchaseWeek = firstItem?.week || null;
+      const purchaseEventId = firstItem?.event_id || null;
+
+      const itemsSummary = items.map(i => ({
+        name: i.name,
+        quantity: i.quantity || '',
+        expected_price: i.expected_price || null
+      }));
+
       // 1. Create Purchase record
       const { error: purchaseError } = await supabase
         .from('purchases')
         .insert([{
           home_id: profile.home_id,
           total_amount: Number(totalAmount),
-          store_name: storeName.trim() || 'Supermercado'
+          store_name: storeName.trim() || 'Supermercado',
+          week: purchaseWeek,
+          event_id: purchaseEventId,
+          items_summary: itemsSummary
         }]);
 
       if (purchaseError) throw purchaseError;

@@ -1,27 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { TrendingDown, Calendar, Store, ArrowUpRight } from 'lucide-react';
+import { TrendingDown, Calendar, Store, ArrowUpRight, PackageOpen } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Expenses() {
   const { profile } = useAuth();
   const [purchases, setPurchases] = useState([]);
+  const [events, setEvents] = useState({});
   const [loading, setLoading] = useState(true);
   const [totalMonth, setTotalMonth] = useState(0);
 
   useEffect(() => {
     if (profile?.home_id) {
-      fetchExpenses();
+      fetchData();
     }
   }, [profile]);
 
-  const fetchExpenses = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
+      // Fetch events for names
+      const { data: eventsData } = await supabase
+        .from('shopping_events')
+        .select('id, name')
+        .eq('home_id', profile.home_id);
+      
+      const eventsMap = {};
+      if (eventsData) {
+        eventsData.forEach(e => eventsMap[e.id] = e.name);
+      }
+      setEvents(eventsMap);
+
+      // Fetch purchases
       const { data } = await supabase
         .from('purchases')
         .select('*')
@@ -48,6 +63,82 @@ export default function Expenses() {
     return new Date(dateString).toLocaleDateString('es-ES', options);
   };
 
+  // Agrupar compras
+  const groupPurchases = () => {
+    const groups = {
+      weeks: { 1: [], 2: [], 3: [], 4: [] },
+      events: {}
+    };
+
+    purchases.forEach(p => {
+      if (p.event_id) {
+        if (!groups.events[p.event_id]) groups.events[p.event_id] = [];
+        groups.events[p.event_id].push(p);
+      } else if (p.week) {
+        if (!groups.weeks[p.week]) groups.weeks[p.week] = [];
+        groups.weeks[p.week].push(p);
+      } else {
+        // En caso de que no tenga semana ni evento (compras antiguas)
+        groups.weeks[1].push(p);
+      }
+    });
+
+    return groups;
+  };
+
+  const grouped = groupPurchases();
+
+  const renderPurchaseList = (list) => {
+    if (!list || list.length === 0) return null;
+    
+    const totalGroup = list.reduce((sum, p) => sum + Number(p.total_amount), 0);
+    
+    return (
+      <div className="space-y-4 mb-8">
+        {list.map(purchase => (
+          <div key={purchase.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <Store size={18} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900 dark:text-white">{purchase.store_name}</h4>
+                  <p className="text-xs text-gray-500">{formatDate(purchase.created_at)}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-extrabold text-gray-900 dark:text-white">
+                  Bs {Number(purchase.total_amount).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+
+            {/* Items summary */}
+            {purchase.items_summary && purchase.items_summary.length > 0 && (
+              <div className="bg-gray-50 dark:bg-slate-900/50 rounded-xl p-3 border border-gray-100 dark:border-slate-700/50">
+                <h5 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider flex items-center">
+                  <PackageOpen size={12} className="mr-1" /> Productos comprados
+                </h5>
+                <div className="flex flex-wrap gap-2">
+                  {purchase.items_summary.map((item, idx) => (
+                    <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-600 shadow-sm">
+                      {item.name} {item.quantity ? <span className="ml-1 opacity-60">({item.quantity})</span> : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        <div className="flex justify-end pr-2 text-sm">
+          <span className="text-gray-500 dark:text-gray-400 mr-2">Subtotal:</span>
+          <span className="font-bold text-gray-900 dark:text-white">Bs {totalGroup.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 pb-20">
       <div className="flex items-center justify-between">
@@ -72,9 +163,7 @@ export default function Expenses() {
         </div>
       </div>
 
-      <div className="mt-8">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Historial de Compras</h3>
-        
+      <div className="mt-8 space-y-8">
         {loading ? (
           <div className="space-y-3 animate-pulse">
             {[1, 2, 3].map(i => (
@@ -86,29 +175,29 @@ export default function Expenses() {
             No has registrado ninguna compra todavía.
           </div>
         ) : (
-          <div className="space-y-3">
-            {purchases.map(purchase => (
-              <div key={purchase.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                    <Store size={20} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white text-lg">{purchase.store_name}</h4>
-                    <p className="text-sm text-gray-500">{formatDate(purchase.created_at)}</p>
-                  </div>
+          <>
+            {[1, 2, 3, 4].map(w => (
+              grouped.weeks[w] && grouped.weeks[w].length > 0 && (
+                <div key={`week-${w}`}>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center">
+                    <span className="w-2 h-6 bg-purple-500 rounded-full mr-2"></span>
+                    Semana {w}
+                  </h3>
+                  {renderPurchaseList(grouped.weeks[w])}
                 </div>
-                <div className="text-right">
-                  <p className="font-extrabold text-gray-900 dark:text-white text-lg">
-                    Bs {Number(purchase.total_amount).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs font-medium text-rose-500 flex items-center justify-end">
-                    Gasto <ArrowUpRight size={12} className="ml-1" />
-                  </p>
-                </div>
+              )
+            ))}
+
+            {Object.entries(grouped.events).map(([eventId, eventPurchases]) => (
+              <div key={`event-${eventId}`}>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center">
+                  <span className="w-2 h-6 bg-rose-500 rounded-full mr-2"></span>
+                  Evento: {events[eventId] || 'Evento Eliminado'}
+                </h3>
+                {renderPurchaseList(eventPurchases)}
               </div>
             ))}
-          </div>
+          </>
         )}
       </div>
     </div>
